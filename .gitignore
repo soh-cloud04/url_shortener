@@ -56,3 +56,111 @@ backend/.terraform.lock.hcl
 
 # Backend Serverless
 backend/.serverless/
+
+# Frontend specific ignores
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.nuxt/
+frontend/.output/
+frontend/.vercel/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Frontend package manager files
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+frontend/.yarn/
+frontend/.pnp.*
+
+# Frontend build outputs
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.nuxt/
+frontend/.output/
+frontend/.svelte-kit/
+
+# Frontend cache directories
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.eslintcache
+frontend/.stylelintcache
+frontend/.prettiercache
+
+# Frontend IDE/Editor files
+frontend/.vscode/
+frontend/.idea/
+frontend/*.swp
+frontend/*.swo
+frontend/*~
+
+# Frontend OS files
+frontend/.DS_Store
+frontend/Thumbs.db
+
+# Frontend logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/lerna-debug.log*
+frontend/.pnpm-debug.log*
+
+# Frontend testing
+frontend/coverage/
+frontend/.nyc_output/
+frontend/test-results/
+frontend/playwright-report/
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+
+# Frontend storybook
+frontend/storybook-static/
+frontend/.storybook-out/
+
+# Frontend PWA files
+frontend/public/sw.js
+frontend/public/workbox-*.js
+frontend/public/worker-*.js
+frontend/public/sw.js.map
+frontend/public/workbox-*.js.map
+frontend/public/worker-*.js.map
+
+# Frontend TypeScript
+frontend/*.tsbuildinfo
+frontend/.tsbuildinfo
+
+# Frontend temporary files
+frontend/tmp/
+frontend/temp/
+frontend/.tmp/
+frontend/.temp/
+
+# Frontend backup files
+frontend/*.bak
+frontend/*.backup
+
+# Frontend Docker
+frontend/.dockerignore
+frontend/docker-compose.override.yml
+
+# Frontend deployment
+frontend/.vercel/
+frontend/.netlify/
+frontend/.surge.sh/
+
+# Frontend misc
+frontend/.env*.local
+frontend/.next-env.d.ts
+frontend/.svelte-kit/
+frontend/.vite/
+frontend/.rollup.cache/
