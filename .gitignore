@@ -1,0 +1,58 @@
+# Backend specific ignores
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/.env
+backend/.env.*
+backend/npm-debug.log*
+backend/coverage/
+backend/.nyc_output/
+backend/.eslintcache
+backend/.prettiercache
+backend/*.tsbuildinfo
+backend/logs/
+backend/tmp/
+backend/temp/
+backend/data/
+backend/mongodb/
+
+# Backend IDE/Editor files
+backend/.vscode/
+backend/.idea/
+backend/*.swp
+backend/*.swo
+backend/*~
+
+# Backend OS files
+backend/.DS_Store
+backend/Thumbs.db
+
+# Backend database files
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Backend backup files
+backend/*.bak
+backend/*.backup
+
+# Backend test files
+backend/test-results/
+backend/playwright-report/
+backend/test-results.xml
+
+# Backend PM2 logs
+backend/.pm2/
+
+# Backend Docker
+backend/.dockerignore
+backend/docker-compose.override.yml
+
+# Backend Terraform
+backend/*.tfstate
+backend/*.tfstate.*
+backend/.terraform/
+backend/.terraform.lock.hcl
+
+# Backend Serverless
+backend/.serverless/
