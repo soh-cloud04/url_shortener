@@ -270,33 +270,6 @@ Health check endpoint.
    npm run dev
    ```
 
-## 🧪 Testing
-
-### Backend Testing
-```bash
-cd backend
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-### Frontend Testing
-```bash
-cd frontend
-
-# Run linting
-npm run lint
-
-# Build for production
-npm run build
-```
-
 ## 📈 Performance Features
 
 ### Caching Strategy
