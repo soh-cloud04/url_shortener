@@ -83,6 +83,7 @@ A full-stack URL shortening application built with TypeScript, featuring a React
 ## 🏗️ Architecture
 
 ### Backend Architecture 
+```bash
 backend/
 ├── src/
 │ ├── config/
@@ -102,8 +103,10 @@ backend/
 ├── tests/ # Jest test files
 ├── package.json
 ├── tsconfig.json
+```
 
 ### Frontend Architecture 
+```bash
 ├── src/
 │ ├── components/
 │ │ ├── UrlShortener.tsx # URL shortening form
