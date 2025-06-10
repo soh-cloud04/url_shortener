@@ -2,6 +2,12 @@
 
 A full-stack URL shortening application built with TypeScript, featuring a React frontend and Express.js backend with MongoDB and Redis for high-performance caching.
 
+## 📚 Documentation
+
+- **API Documentation**: [Postman Collection](https://documenter.getpostman.com/view/40046459/2sB2x3pDny)
+- **Interactive Testing**: Use the Postman collection to test all API endpoints
+- **Access postman collection**: Use the postman collection: `postman/url shortener.postman_collection.json`
+
 ## 🚀 Features
 
 ### Backend Features
