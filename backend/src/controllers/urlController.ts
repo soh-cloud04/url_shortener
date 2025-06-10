@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { Url, IUrl, generateUniqueId } from '../models/url';
+import { Url, IUrl } from '../models/url';
 import { generateShortCode, generateRandomCode } from '../utils/base62';
 import { config } from '../config';
+import { cacheService } from '../services/cacheService';
 
 export class UrlController {
     // POST /shorten
@@ -22,26 +23,60 @@ export class UrlController {
                 return;
             }
 
-            // Check if URL already exists
+            // Check cache first for existing URL
+            const cachedShortCode = await cacheService.getCachedShortCode(longUrl);
+            if (cachedShortCode) {
+                // Check if the cached shortCode still exists in DB
+                const existingUrl = await Url.findOne({ shortCode: cachedShortCode });
+                if (existingUrl) {
+                    // Generate a new short code for the same URL (different salt)
+                    const salt = Math.floor(Math.random() * 100);
+                    const shortCode = generateShortCode(existingUrl._id.toString(), salt);
+                    
+                    // Check for collision and retry if needed
+                    const finalShortCode = await UrlController.generateUniqueCode(shortCode);
+                    
+                    const newUrl = new Url({
+                        longUrl,
+                        shortCode: finalShortCode,
+                        salt
+                    });
+
+                    await newUrl.save();
+                    
+                    // Cache the new URL
+                    await cacheService.cacheUrl(newUrl);
+                    
+                    res.status(201).json({
+                        originalUrl: longUrl,
+                        shortUrl: `${config.baseUrl}/${finalShortCode}`,
+                        shortCode: finalShortCode
+                    });
+                    return;
+                }
+            }
+
+            // Check if URL already exists in database
             const existingUrl = await Url.findOne({ longUrl });
             if (existingUrl) {
                 // Generate a new short code for the same URL (different salt)
-                const _id = generateUniqueId();
                 const salt = Math.floor(Math.random() * 100);
-                const shortCode = generateShortCode(_id.toString(), salt);
-
+                const shortCode = generateShortCode(existingUrl._id.toString(), salt);
+                
                 // Check for collision and retry if needed
                 const finalShortCode = await UrlController.generateUniqueCode(shortCode);
-
+                
                 const newUrl = new Url({
-                    _id,
                     longUrl,
                     shortCode: finalShortCode,
                     salt
                 });
 
                 await newUrl.save();
-
+                
+                // Cache the new URL
+                await cacheService.cacheUrl(newUrl);
+                
                 res.status(201).json({
                     originalUrl: longUrl,
                     shortUrl: `${config.baseUrl}/${finalShortCode}`,
@@ -49,20 +84,22 @@ export class UrlController {
                 });
                 return;
             }
-            // Generate a unique id for the url
-            const _id = generateUniqueId();
 
             // Create new URL entry
-            const newUrl = new Url({ _id, longUrl });
+            const newUrl = new Url({ longUrl });
+            await newUrl.save();
 
             // Generate short code with retry logic
             const shortCode = await UrlController.generateUniqueCode(
-                generateShortCode(_id.toString())
+                generateShortCode(newUrl._id.toString())
             );
 
             // Update with the final short code
             newUrl.shortCode = shortCode;
             await newUrl.save();
+
+            // Cache the URL
+            await cacheService.cacheUrl(newUrl);
 
             res.status(201).json({
                 originalUrl: longUrl,
@@ -81,15 +118,48 @@ export class UrlController {
         try {
             const { shortCode } = req.params;
 
+            // Check cache first
+            const cachedUrl = await cacheService.getCachedUrl(shortCode);
+            if (cachedUrl) {
+                // Increment clicks in cache
+                const clicks = await cacheService.incrementClicks(shortCode);
+                
+                // Update database asynchronously (fire and forget)
+                Url.findOneAndUpdate(
+                    { shortCode },
+                    { $inc: { clicks: 1 } },
+                    { new: true }
+                ).then(async (updatedUrl) => {
+                    if (updatedUrl) {
+                        // Update cache with new click count
+                        await cacheService.cacheUrl(updatedUrl);
+                        await cacheService.invalidateStats(shortCode); // Invalidate stats cache
+                    }
+                }).catch(error => {
+                    console.error('Error updating clicks in database:', error);
+                });
+
+                res.redirect(cachedUrl.longUrl);
+                return;
+            }
+
+            // If not in cache, check database
             const url = await Url.findOne({ shortCode });
             if (!url) {
                 res.status(404).json({ error: 'Short URL not found' });
                 return;
             }
 
-            // Increment click count
+            // Cache the URL for future requests
+            await cacheService.cacheUrl(url);
+
+            // Increment clicks
             url.clicks += 1;
             await url.save();
+
+            // Update cache with new click count
+            await cacheService.cacheUrl(url);
+            await cacheService.invalidateStats(shortCode); // Invalidate stats cache
 
             // Redirect to original URL
             res.redirect(url.longUrl);
@@ -105,6 +175,14 @@ export class UrlController {
         try {
             const { shortCode } = req.params;
 
+            // Check cache first
+            const cachedStats = await cacheService.getCachedStats(shortCode);
+            if (cachedStats) {
+                res.json(cachedStats);
+                return;
+            }
+
+            // If not in cache, check database
             const url = await Url.findOne({ shortCode });
             if (!url) {
                 res.status(404).json({ error: 'Short URL not found' });
@@ -117,6 +195,9 @@ export class UrlController {
                 createdAt: url.createdAt.toISOString().split('T')[0], // YYYY-MM-DD format
                 shortCode: url.shortCode
             };
+
+            // Cache the stats
+            await cacheService.cacheStats(stats);
 
             res.json(stats);
 
@@ -132,6 +213,16 @@ export class UrlController {
         let retries = 0;
 
         while (retries < maxRetries) {
+            // Check cache first
+            const cachedUrl = await cacheService.getCachedUrl(code);
+            if (cachedUrl) {
+                // Collision in cache, try with random code
+                code = generateRandomCode(5);
+                retries++;
+                continue;
+            }
+
+            // Check database
             const existing = await Url.findOne({ shortCode: code });
             if (!existing) {
                 return code;

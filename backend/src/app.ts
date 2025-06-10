@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
+import { redisClient } from './config/redis';
 import urlRoutes from './routes/urlRoutes';
 
 const app = express();
@@ -30,8 +31,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+    try {
+        const mongoStatus = mongoose.connection.readyState === 1;
+        const redisStatus = await redisClient.healthCheck();
+
+        res.json({
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            services: {
+                mongodb: mongoStatus ? 'connected' : 'disconnected',
+                redis: redisStatus ? 'connected' : 'disconnected'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            error: 'Health check failed'
+        });
+    }
 });
 
 // Routes
@@ -48,21 +67,41 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     res.status(500).json({ error: 'Internal server error' });
 });
 
-// Connect to MongoDB and start server
+// Connect to MongoDB and Redis, then start server
 async function startServer() {
     try {
+        // Connect to MongoDB
         await mongoose.connect(config.mongoUri);
         console.log('Connected to MongoDB');
+
+        // Connect to Redis
+        await redisClient.connect();
+        console.log('Connected to Redis');
 
         app.listen(config.port, () => {
             console.log(`Server running on port ${config.port}`);
             console.log(`Health check: http://localhost:${config.port}/health`);
         });
     } catch (error) {
-        console.error('Failed to connect to MongoDB:', error);
+        console.error('Failed to start server:', error);
         process.exit(1);
     }
 }
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    await mongoose.disconnect();
+    await redisClient.disconnect();
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    console.log('SIGINT received, shutting down gracefully');
+    await mongoose.disconnect();
+    await redisClient.disconnect();
+    process.exit(0);
+});
 
 startServer();
 
