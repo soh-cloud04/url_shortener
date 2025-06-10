@@ -8,6 +8,7 @@ function App() {
   const [currentShortCode, setCurrentShortCode] = useState<string | null>(null);
 
   const handleUrlShortened = (shortUrl: string, shortCode: string) => {
+    console.log(shortUrl)
     setCurrentShortCode(shortCode);
   };
 
