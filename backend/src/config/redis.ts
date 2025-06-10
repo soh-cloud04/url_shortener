@@ -1,16 +1,19 @@
 import Redis from 'ioredis';
 import { config } from './index';
 
-class RedisClient {
+export class RedisClient {
   private client: Redis;
   private subscriber: Redis;
 
   constructor() {
-    this.client = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
+    this.client = new Redis(config.redis.port, config.redis.host, {
       password: config.redis.password,
-      retryDelayOnFailover: 100,
+      retryStrategy(times) {
+        // `times` is the number of retry attempts
+        const delay = Math.min(times * 100, 2000); // Exponential backoff: 100ms, 200ms, ..., max 2000ms
+        console.warn(`Redis retry attempt #${times}. Retrying in ${delay}ms.`);
+        return delay; // Returning a number means retry after that delay (ms)
+      },
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       keepAlive: 30000,
@@ -18,11 +21,14 @@ class RedisClient {
       db: config.redis.db,
     });
 
-    this.subscriber = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
+    this.subscriber = new Redis(config.redis.port, config.redis.host, {
       password: config.redis.password,
-      retryDelayOnFailover: 100,
+      retryStrategy(times) {
+        // `times` is the number of retry attempts
+        const delay = Math.min(times * 100, 2000); // Exponential backoff: 100ms, 200ms, ..., max 2000ms
+        console.warn(`Redis retry attempt #${times}. Retrying in ${delay}ms.`);
+        return delay; // Returning a number means retry after that delay (ms)
+      },
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       keepAlive: 30000,
@@ -156,18 +162,18 @@ class RedisClient {
     return this.subscriber;
   }
 
-    // Health check method
-    async healthCheck(): Promise<boolean> {
-      try {
-        await this.client.set('health:check', 'ok', 10);
-        const result = await this.client.get('health:check');
-        return result === 'ok';
-      } catch (error) {
-        console.error('Redis health check failed:', error);
-        return false;
-      }
+  // Health check method
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.client.set('health:check', 'ok', 'EX', 10);
+      const result = await this.client.get('health:check');
+      return result === 'ok';
+    } catch (error) {
+      console.error('Redis health check failed:', error);
+      return false;
     }
-  
+  }
+
 }
 
 export const redisClient = new RedisClient();

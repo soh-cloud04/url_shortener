@@ -1,12 +1,25 @@
 const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+// export function encodeBase62(num: number): string {
+//   let res = '';
+//   while (num > 0) {
+//     res = chars[num % 62] + res;
+//     num = Math.floor(num / 62);
+//   }
+//   return res.padStart(5, '0'); // Ensures minimum length of 5
+// }
+
 export function encodeBase62(num: number): string {
+  // Ensure number fits in 5 base62 digits (62^5 = 916,132,832)
+  const maxValue = Math.pow(62, 5) - 1;
+  num = num % maxValue;
+  
   let res = '';
   while (num > 0) {
     res = chars[num % 62] + res;
     num = Math.floor(num / 62);
   }
-  return res.padStart(5, '0'); // Ensures minimum length of 5
+  return res.padStart(5, '0');
 }
 
 export function generateRandomCode(length: number = 5): string {

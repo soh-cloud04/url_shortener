@@ -1,4 +1,4 @@
-import { redisClient } from '../config/redis';
+import { redisClient, RedisClient } from '../config/redis';
 import { IUrl } from '../models/url';
 
 export interface CachedUrl {
@@ -41,11 +41,11 @@ export class CacheService {
         salt: url.salt,
       };
 
-      const key = redisClient.constructor.getUrlKey(url.shortCode);
+      const key = RedisClient.getUrlKey(url.shortCode);
       await redisClient.set(key, JSON.stringify(cachedUrl), 60 * 60 * 24 * 7); // 7 days
 
       // Also cache the shortCode for longUrl lookup
-      const shortCodeKey = redisClient.constructor.getShortCodeKey(url.longUrl);
+      const shortCodeKey = RedisClient.getShortCodeKey(url.longUrl);
       await redisClient.set(shortCodeKey, url.shortCode, 60 * 60 * 24); // 1 day
     } catch (error) {
       console.error('Error caching URL:', error);
@@ -54,7 +54,7 @@ export class CacheService {
 
   async getCachedUrl(shortCode: string): Promise<CachedUrl | null> {
     try {
-      const key = redisClient.constructor.getUrlKey(shortCode);
+      const key = RedisClient.getUrlKey(shortCode);
       const cached = await redisClient.get(key);
       
       if (cached) {
@@ -70,7 +70,7 @@ export class CacheService {
 
   async getCachedShortCode(longUrl: string): Promise<string | null> {
     try {
-      const key = redisClient.constructor.getShortCodeKey(longUrl);
+      const key = RedisClient.getShortCodeKey(longUrl);
       return await redisClient.get(key);
     } catch (error) {
       console.error('Error getting cached shortCode:', error);
@@ -81,7 +81,7 @@ export class CacheService {
   // Stats caching
   async cacheStats(stats: CachedStats): Promise<void> {
     try {
-      const key = redisClient.constructor.getStatsKey(stats.shortCode);
+      const key = RedisClient.getStatsKey(stats.shortCode);
       await redisClient.set(key, JSON.stringify(stats), 60 * 60); // 1 hour
     } catch (error) {
       console.error('Error caching stats:', error);
@@ -90,7 +90,7 @@ export class CacheService {
 
   async getCachedStats(shortCode: string): Promise<CachedStats | null> {
     try {
-      const key = redisClient.constructor.getStatsKey(shortCode);
+      const key = RedisClient.getStatsKey(shortCode);
       const cached = await redisClient.get(key);
       
       if (cached) {
@@ -107,7 +107,7 @@ export class CacheService {
   // Click tracking with Redis
   async incrementClicks(shortCode: string): Promise<number> {
     try {
-      const key = redisClient.constructor.getClicksKey(shortCode);
+      const key = RedisClient.getClicksKey(shortCode);
       const clicks = await redisClient.incr(key);
       
       // Set TTL for click counter
@@ -122,7 +122,7 @@ export class CacheService {
 
   async getCachedClicks(shortCode: string): Promise<number> {
     try {
-      const key = redisClient.constructor.getClicksKey(shortCode);
+      const key = RedisClient.getClicksKey(shortCode);
       const clicks = await redisClient.get(key);
       return clicks ? parseInt(clicks) : 0;
     } catch (error) {
@@ -134,8 +134,8 @@ export class CacheService {
   // Cache invalidation
   async invalidateUrl(shortCode: string): Promise<void> {
     try {
-      const urlKey = redisClient.constructor.getUrlKey(shortCode);
-      const statsKey = redisClient.constructor.getStatsKey(shortCode);
+      const urlKey = RedisClient.getUrlKey(shortCode);
+      const statsKey = RedisClient.getStatsKey(shortCode);
       
       await redisClient.del(urlKey);
       await redisClient.del(statsKey);
@@ -146,7 +146,7 @@ export class CacheService {
 
   async invalidateStats(shortCode: string): Promise<void> {
     try {
-      const key = redisClient.constructor.getStatsKey(shortCode);
+      const key = RedisClient.getStatsKey(shortCode);
       await redisClient.del(key);
     } catch (error) {
       console.error('Error invalidating stats cache:', error);

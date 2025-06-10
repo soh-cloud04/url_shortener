@@ -57,6 +57,9 @@ backend/.terraform.lock.hcl
 # Backend Serverless
 backend/.serverless/
 
+# Backend cache
+backend/dump.rdb
+
 # Frontend specific ignores
 frontend/node_modules/
 frontend/.next/

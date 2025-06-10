@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Url, IUrl } from '../models/url';
+import { Url, IUrl, generateUniqueId } from '../models/url';
 import { generateShortCode, generateRandomCode } from '../utils/base62';
 import { config } from '../config';
 import { cacheService } from '../services/cacheService';
@@ -23,6 +23,9 @@ export class UrlController {
                 return;
             }
 
+            // generate id for new url
+            const _id = generateUniqueId();
+
             // Check cache first for existing URL
             const cachedShortCode = await cacheService.getCachedShortCode(longUrl);
             if (cachedShortCode) {
@@ -31,22 +34,23 @@ export class UrlController {
                 if (existingUrl) {
                     // Generate a new short code for the same URL (different salt)
                     const salt = Math.floor(Math.random() * 100);
-                    const shortCode = generateShortCode(existingUrl._id.toString(), salt);
-                    
+                    const shortCode = generateShortCode(_id.toString(), salt);
+
                     // Check for collision and retry if needed
                     const finalShortCode = await UrlController.generateUniqueCode(shortCode);
-                    
+
                     const newUrl = new Url({
+                        _id,
                         longUrl,
                         shortCode: finalShortCode,
                         salt
                     });
 
                     await newUrl.save();
-                    
+
                     // Cache the new URL
                     await cacheService.cacheUrl(newUrl);
-                    
+
                     res.status(201).json({
                         originalUrl: longUrl,
                         shortUrl: `${config.baseUrl}/${finalShortCode}`,
@@ -61,22 +65,23 @@ export class UrlController {
             if (existingUrl) {
                 // Generate a new short code for the same URL (different salt)
                 const salt = Math.floor(Math.random() * 100);
-                const shortCode = generateShortCode(existingUrl._id.toString(), salt);
-                
+                const shortCode = generateShortCode(_id.toString(), salt);
+
                 // Check for collision and retry if needed
                 const finalShortCode = await UrlController.generateUniqueCode(shortCode);
-                
+
                 const newUrl = new Url({
+                    _id,
                     longUrl,
                     shortCode: finalShortCode,
                     salt
                 });
 
                 await newUrl.save();
-                
+
                 // Cache the new URL
                 await cacheService.cacheUrl(newUrl);
-                
+
                 res.status(201).json({
                     originalUrl: longUrl,
                     shortUrl: `${config.baseUrl}/${finalShortCode}`,
@@ -86,12 +91,11 @@ export class UrlController {
             }
 
             // Create new URL entry
-            const newUrl = new Url({ longUrl });
-            await newUrl.save();
+            const newUrl = new Url({ _id, longUrl, shortCode: "" });
 
             // Generate short code with retry logic
             const shortCode = await UrlController.generateUniqueCode(
-                generateShortCode(newUrl._id.toString())
+                generateShortCode(_id.toString())
             );
 
             // Update with the final short code
@@ -123,7 +127,7 @@ export class UrlController {
             if (cachedUrl) {
                 // Increment clicks in cache
                 const clicks = await cacheService.incrementClicks(shortCode);
-                
+
                 // Update database asynchronously (fire and forget)
                 Url.findOneAndUpdate(
                     { shortCode },
@@ -236,4 +240,36 @@ export class UrlController {
         // If still colliding after max retries, use 6-character code
         return generateRandomCode(6);
     }
+    // private static async generateUniqueCode(initialCode: string, maxRetries: number = 5): Promise<string> {
+    //     let code = initialCode;
+    //     let retries = 0;
+    
+    //     // Try with 5-character codes
+    //     while (retries < maxRetries) {
+    //         const cachedUrl = await cacheService.getCachedUrl(code);
+    //         if (!cachedUrl) {
+    //             const existing = await Url.findOne({ shortCode: code });
+    //             if (!existing) {
+    //                 return code;
+    //             }
+    //         }
+    
+    //         code = generateRandomCode(5);
+    //         retries++;
+    //     }
+    
+    //     // If all retries fail, keep trying with 6-character codes until success
+    //     while (true) {
+    //         code = generateRandomCode(5);
+    
+    //         const cachedUrl = await cacheService.getCachedUrl(code);
+    //         if (cachedUrl) continue;
+    
+    //         const existing = await Url.findOne({ shortCode: code });
+    //         if (!existing) {
+    //             return code;
+    //         }
+    //     }
+    // }
+    
 } 
